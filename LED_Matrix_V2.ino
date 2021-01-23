@@ -31,11 +31,12 @@ V2.3  12.05.2019: Smileys added to fonts
 V2.4  28.05.2019: Change to WeMos D1
 V2.5  29.05.2019: Added two buttons on webpage: display reset and ESP8266 reset
 V2.6  18.01.2021: add random heart animation, passwords moved to Credentials
+V2.7  23.01.2021: add button to webpage: show animation yes/no
 
 
 *******************************************************************************************/
 
-#define FIRMWARE "2.6"
+#define FIRMWARE "2.7"
 
 /************************( include of the necessary libraries )************************/
 
@@ -74,6 +75,7 @@ byte wait = 50;                  // time (ms) for scrolling --> scrolling speed
 byte helligkeit = 2;             // intensity, 0..15
 int spacer = 1;                  // space between the chars
 int width = 5 + spacer;          // width of a single char + spacer
+bool showAnim = true;            // true = show animations and scrolling text, false = show only time and nothing else
 
 #define ROTATE 90   // orientation of the matrices 0 / 90 / 270
 #define NUM_MAX 4   // number of 8x8 matrices
@@ -189,17 +191,20 @@ void loop() {
 
 	t = now();
 
-	if ((second(t) == 15 || second(t) == 45) && !del && dots) {       // check if second is 15 or 45
-		printStringWithShift(LaufschriftText.c_str(), wait);
-	}
+	if (showAnim) {
 
-	if ((second(t) == 30 && minute(t) % 2 == 0) && !del) {            // check if second is 30 and minute is even
-		Datum = spaces + makeDate() + spaces;
-		printStringWithShift(Datum.c_str(), wait);
-	}
+		if ((second(t) == 15 || second(t) == 45) && !del && dots) {       // check if second is 15 or 45
+			printStringWithShift(LaufschriftText.c_str(), wait);
+		}
 
-	if ((second(t) == 30 && minute(t) % 2 != 0) && !del) {            // check if second is 30 and minute is uneven
-		showHeart(random(8));
+		if ((second(t) == 30 && minute(t) % 2 == 0) && !del) {            // check if second is 30 and minute is even
+			Datum = spaces + makeDate() + spaces;
+			printStringWithShift(Datum.c_str(), wait);
+		}
+
+		if ((second(t) == 30 && minute(t) % 2 != 0) && !del) {            // check if second is 30 and minute is uneven
+			showHeart(random(8));
+		}
 	}
 
 	// check for blinking dots
@@ -548,6 +553,17 @@ void handleRoot() {
 	message += "</td></tr>";
 	// ------------------------------------------------------------------------
 	message += "<tr><td>";
+	message += "Animationen/Lauftext an/aus:";
+	message += "</td><td>";
+	message += "<input type=\"radio\" name=\"showanim\" value=\"1\"";
+	if (showAnim) message += " checked";
+	message += "> an ";
+	message += "<input type=\"radio\" name=\"showanim\" value=\"0\"";
+	if (!showAnim) message += " checked";
+	message += "> aus";
+	message += "</td></tr>";
+	// ------------------------------------------------------------------------
+	message += "<tr><td>";
 	message += "Lauftext:";
 	message += "</td><td>";
 	message += "<input type=\"text\" name=\"lauftext\" size=\"30\" maxlength=\"30\"";
@@ -569,6 +585,7 @@ void handleCommitSettings() {
 	helligkeit = server.arg("helligkeit").toInt();
 	sendCmdAll(CMD_INTENSITY, helligkeit);
 	wait = server.arg("geschwindigkeit").toInt();
+	server.arg("showanim") == "0" ? showAnim = 0 : showAnim = 1;
 	LaufschriftWeb = server.arg("lauftext");
 	LaufschriftText = spaces + utf8ascii(LaufschriftWeb) + spaces;
 	callRoot();
