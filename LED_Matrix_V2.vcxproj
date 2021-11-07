@@ -117,6 +117,9 @@
     </ClInclude>
     <ClInclude Include="__vm\.LED_Matrix_V2.vsarduino.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="board.txt" />
+  </ItemGroup>
   <PropertyGroup>
     <DebuggerFlavor>VisualMicroDebugger</DebuggerFlavor>
   </PropertyGroup>
