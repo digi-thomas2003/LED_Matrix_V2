@@ -32,11 +32,12 @@ V2.4  28.05.2019: Change to WeMos D1
 V2.5  29.05.2019: Added two buttons on webpage: display reset and ESP8266 reset
 V2.6  18.01.2021: add random heart animation, passwords moved to Credentials
 V2.7  23.01.2021: add button to webpage: show animation yes/no
+V2.8  07.11.2021: add Xmas special: counting the days until Xmas
 
 
 *******************************************************************************************/
 
-#define FIRMWARE "2.7"
+#define FIRMWARE "2.8 - 2021-11-07"
 
 /************************( include of the necessary libraries )************************/
 
@@ -63,7 +64,7 @@ IPAddress subnet(255, 255, 255, 0);
 /******************************( initialising of the libraries )*****************************/
 ESP8266WebServer server(80);      // start the webserver on port 80
 								  // the server can be reached with http://192.168.178.220
-								  // or http://led-matrix.local
+								  // or http://led-matrix.fritz.box
 
 /**************************( variables and defines for MAX7219 )*****************************************/
 String spaces = "           ";
@@ -98,11 +99,15 @@ byte del = 0;
 /**************************( global variables for time and date )*****************************************/
 boolean dots = 0;             // 1 = dots visible, 0 = dots invisible
 unsigned long dotTime = 0;    // used for blinking dots
-int h, m, s, w, mo, ye, d;
+int h, m, s;
+byte pday = 0;
 time_t t, restart;
 const char* Wochentag[] = { "Fehler", "Sonntag", "Montag", "Dienstag","Mittwoch", "Donnerstag", "Freitag","Samstag" };
 const char* Monate[] = { "Fehler", "Januar", "Februar", "M\xE4rz","April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November","Dezember" };
 String Datum;
+
+boolean advent = false;      // true if it is the time from 1. advent to xmas
+
 static byte c1;              // Last character buffer, used for utf8 decoding
 
 /*****************************************( Setup )****************************************/
@@ -147,7 +152,7 @@ void setup() {
 	// start webserver
 	setupWebServer();
 
-	// start mDNS --> http://led-matrix.local
+	// start mDNS --> http://led-matrix.fritz.box
 	MDNS.begin(HOSTNAME);
 	MDNS.addService("http", "tcp", 80);
 
@@ -181,6 +186,7 @@ void setup() {
 	restart = now();
 
 	LaufschriftText = utf8ascii(LaufschriftDefault);
+	LaufschriftWeb = LaufschriftDefault;
 
 }
 
@@ -191,18 +197,24 @@ void loop() {
 
 	t = now();
 
+	// check if is time before xmas - advent
+	if (day(t) != pday) {
+		checkAdvent();
+		pday = day(t);
+	}
+
 	if (showAnim) {
 
 		if ((second(t) == 15 || second(t) == 45) && !del && dots) {       // check if second is 15 or 45
 			printStringWithShift(LaufschriftText.c_str(), wait);
 		}
 
-		if ((second(t) == 30 && minute(t) % 2 == 0) && !del) {            // check if second is 30 and minute is even
+		if ((second(t) == 30 && minute(t) % 2 == 0) && !del) {             // check if second is 30 and minute is even
 			Datum = spaces + makeDate() + spaces;
 			printStringWithShift(Datum.c_str(), wait);
 		}
 
-		if ((second(t) == 30 && minute(t) % 2 != 0) && !del) {            // check if second is 30 and minute is uneven
+		if ((second(t) == 30 && minute(t) % 2 != 0) && !del) {             // check if second is 30 and minute is uneven
 			showHeart(random(8));
 		}
 	}
@@ -221,6 +233,29 @@ void loop() {
 }
 
 /*************************************( functions )****************************************/
+
+void checkAdvent() {
+	if (!advent) {
+		if (month(t) == 11) {
+			if (day(t) >= 27) {
+				if (weekday(t) == 1) advent = true;
+			}
+		}
+		else if (month(t) == 12) {
+			if (day(t) <= 3) {
+				if (weekday(t) == 1) advent = true;
+			}
+		}
+		LaufschriftText = spaces + utf8ascii(LaufschriftWeb) + spaces;
+	}
+	if (advent) {
+		int daysToWait = 24 - day(t);
+		if (daysToWait < 0) daysToWait = daysToWait + 30;
+		LaufschriftText = spaces + "Noch " + String(daysToWait) + " Tage bis Weihnachten!" + spaces;
+		if (month(t) == 12 && day(t) == 25) advent = false;
+	}
+
+}
 
 
 /*************************************( Char functions )***********************************/
@@ -564,12 +599,14 @@ void handleRoot() {
 	message += "</td></tr>";
 	// ------------------------------------------------------------------------
 	message += "<tr><td>";
-	message += "Lauftext:";
-	message += "</td><td>";
-	message += "<input type=\"text\" name=\"lauftext\" size=\"30\" maxlength=\"30\"";
-	if (LaufschriftWeb.length() > 0) message += " value=\"" + LaufschriftWeb + "\"";
-	message += ">";
-	message += "</td></tr>";
+	if (!advent) {
+		message += "Lauftext:";
+		message += "</td><td>";
+		message += "<input type=\"text\" name=\"lauftext\" size=\"30\" maxlength=\"30\"";
+		if (LaufschriftWeb.length() > 0) message += " value=\"" + LaufschriftWeb + "\"";
+		message += ">";
+		message += "</td></tr>";
+	}
 	// ------------------------------------------------------------------------
 	message += "</table>";
 	message += "<br><input type=\"submit\" value=\"save\">";
