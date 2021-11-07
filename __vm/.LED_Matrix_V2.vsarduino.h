@@ -17,13 +17,16 @@
 #define __ESP8266_ESP8266__
 #define __ets__
 #define ICACHE_FLASH
+#define _GNU_SOURCE
+#define MMU_IRAM_SIZE 0x8000
+#define MMU_ICACHE_SIZE 0x8000
 #define NONOSDK22x_190703 1
 #define F_CPU 80000000L
 #define LWIP_OPEN_SRC
 #define TCP_MSS 536
 #define LWIP_FEATURES 1
 #define LWIP_IPV6 0
-#define ARDUINO 108013
+#define ARDUINO 108016
 #define ARDUINO_ESP8266_WEMOS_D1MINI
 #define ARDUINO_ARCH_ESP8266
 #define FLASHMODE_DIO
@@ -93,6 +96,25 @@ typedef long __UINTPTR_TYPE__ ;
 typedef long __SIZE_TYPE__ 	;
 typedef long __PTRDIFF_TYPE__;
 
+// Additions needed for v3.0.0 Core - Needs to be conditional on it being this core really!!
+#ifndef isnan
+#undef _Lockit
+#undef __STDC__
+#define __STDC__ 1
+#define __CHAR_BIT__ 1
+extern int isinf(double);
+extern int isnan(double);
+extern int fpclassify(double);
+extern int signbit(double);
+extern int isfinite(double);
+extern int isnormal(double);
+extern int isgreater(double, double);
+extern int isgreaterequal(double);
+extern int isless(double, double);
+extern int islessequal(double, double);
+extern int islessgreater(double, double);
+extern int isunordered(double, double);
+#endif
 
 #include "new"
 #include "Esp.h"
